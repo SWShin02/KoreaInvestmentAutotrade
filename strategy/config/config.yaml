@@ -1,0 +1,5 @@
+APP_KEY: "Your APP key"
+APP_SECRET: "Your APP secret"
+
+CANO: "Fist 8 digits of your account number"
+ACNT_PRDT_CD: "Last 2 digits of your account number"
