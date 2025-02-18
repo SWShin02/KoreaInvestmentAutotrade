@@ -1,7 +1,7 @@
 from koreainvestmentAPI.Rebalancing import rebalancing
 
 if __name__ == "__main__":
-    base_filepath = "aggressive strategy"
+    base_filepath = "strategy"
     main = rebalancing(f"{base_filepath}/config")
     main.load_portfolio(f'{base_filepath}/portfolio/KR_Portfolio.csv')
     main.get_asset_balance()
