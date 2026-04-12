@@ -1,6 +1,5 @@
 # Git Ignore
 
-open-trading-api/
 __pycache__/
 mom_account/
 my_account/
