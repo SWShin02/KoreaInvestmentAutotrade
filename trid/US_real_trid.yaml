@@ -1,0 +1,5 @@
+# TR_ID
+BALANCE_TR_ID: "TTTS3012R"  # 주식 잔고 조회  
+PSBL_TR_ID: "TTTS3007R"     # 현금 조회
+BUY_TR_ID: "TTTT1002U"      # 매수
+SELL_TR_ID: "TTTT1006U"     # 매도

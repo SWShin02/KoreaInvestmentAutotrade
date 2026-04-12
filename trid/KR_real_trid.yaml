@@ -1,0 +1,5 @@
+# TR_ID
+BALANCE_TR_ID: "TTTC8434R"  # 주식 잔고 조회  
+PSBL_TR_ID: "TTTC8908R"     # 현금 조회
+BUY_TR_ID: "TTTC0802U"      # 매수
+SELL_TR_ID: "TTTC0801U"     # 매도
