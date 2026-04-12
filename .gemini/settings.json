@@ -1,14 +1,11 @@
 {
     "context": {
         "fileFiltering": {
-            "respectGitIgnore": true,
-            "includePatterns": [
-                "open-trading-api/**"
-            ]
+            "respectGitIgnore": true
         }
     },
     "mcp": {
-    "allowed": ["github", "context7"],
-    "excluded": ["chrome-devtools"]
-  }
+        "allowed": ["github", "context7", "KIS-Code-Assistant"],
+        "excluded": ["chrome-devtools"]
+    }
 }
