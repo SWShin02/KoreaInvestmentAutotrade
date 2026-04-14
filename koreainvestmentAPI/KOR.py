@@ -169,6 +169,9 @@ class API(API):
         if res['rt_cd'] == '0':
             print(f"[매도 성공]{res['msg1']}")
             return True
+        elif res['msg1'] == "시장가호가불가로 주문이 불가합니다.":
+            print(f"[매도 실패]{res['msg1']}")
+            return False 
         else:
             print(f"[매도 실패]{res['msg1']}")
             exit()
