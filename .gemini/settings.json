@@ -5,7 +5,7 @@
         }
     },
     "mcp": {
-        "allowed": ["github", "context7", "KIS-Code-Assistant"],
+        "allowed": ["context7", "KIS-Code-Assistant"],
         "excluded": ["chrome-devtools"]
     }
 }
