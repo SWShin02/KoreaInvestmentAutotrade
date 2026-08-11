@@ -2,7 +2,7 @@ import json
 import requests
 import time
 import yaml
-from ...kis_token import API
+from koreainvestmentAPI.KIStoken import API
 
 class API(API):
     def __init__(self, config_file=str) -> None:

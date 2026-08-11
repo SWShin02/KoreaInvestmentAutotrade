@@ -44,41 +44,72 @@ class API(API):
             "tr_id": "TTTC8434R",
             "custtype":"P",
         }
-        params = {
-            "CANO": self.__CANO__,
-            "ACNT_PRDT_CD": self.__ACNT_PRDT_CD__,
-            "AFHR_FLPR_YN": "N",
-            "OFL_YN": "",
-            "INQR_DVSN": "02",
-            "UNPR_DVSN": "01",
-            "FUND_STTL_ICLD_YN": "N",
-            "FNCG_AMT_AUTO_RDPT_YN": "N",
-            "PRCS_DVSN": "01",
-            "CTX_AREA_FK100": "",
-            "CTX_AREA_NK100": ""
-        }
-        res = requests.get(URL, headers=headers, params=params).json()
-
-        """===================주식 잔고조회========================"""
-        stock_list = res['output1']
+        
+        fk100 = ""
+        nk100 = ""
         stock_dict = {}
+        total_evaluation = 0
+        first_run = True
+        
         print(f"====주식 보유잔고====")
-        for stock in stock_list:
-            if int(stock['hldg_qty']) > 0:
-                stock_dict[stock['pdno']] = int(stock['hldg_qty'])
-                print(f"{stock['prdt_name']}({stock['pdno']}): {stock['hldg_qty']}주")
-                time.sleep(0.1)
-        """stock_dict[종목코드] = 주식수"""
-
-        """=======================총 평가금액 조회===================""" 
-        evaluation = res["output2"]
-        total_evaluation = int(evaluation[0]['tot_evlu_amt'])
+        
+        while True:
+            params = {
+                "CANO": self.__CANO__,
+                "ACNT_PRDT_CD": self.__ACNT_PRDT_CD__,
+                "AFHR_FLPR_YN": "N",
+                "OFL_YN": "",
+                "INQR_DVSN": "02",
+                "UNPR_DVSN": "01",
+                "FUND_STTL_ICLD_YN": "N",
+                "FNCG_AMT_AUTO_RDPT_YN": "N",
+                "PRCS_DVSN": "01",
+                "CTX_AREA_FK100": fk100,
+                "CTX_AREA_NK100": nk100
+            }
+            
+            time.sleep(0.7)
+                
+            res_obj = requests.get(URL, headers=headers, params=params)
+            res = res_obj.json()
+            
+            if res.get('rt_cd') != '0':
+                raise RuntimeError(f"KIS API Error: {res.get('msg1', 'Unknown error')} (code: {res.get('msg_cd')})")
+                
+            stock_list = res.get('output1', [])
+            for stock in stock_list:
+                qty = int(stock.get('hldg_qty', 0))
+                if qty > 0:
+                    stock_dict[stock['pdno']] = qty
+                    print(f"{stock['prdt_name']}({stock['pdno']}): {qty}주")
+                    time.sleep(0.1)
+            
+            if first_run:
+                evaluation = res.get("output2", [{}])
+                if evaluation:
+                    total_evaluation = int(evaluation[0].get('tot_evlu_amt', 0))
+                    # Cache the cash balance to prevent consecutive API calls
+                    self.cash_balance = int(evaluation[0].get('prvs_rcdl_excc_amt', 0))
+                    self.cash_balance_time = time.time()
+                first_run = False
+                
+            tr_cont = res_obj.headers.get('tr_cont', '')
+            if tr_cont in ['M', 'F']:
+                fk100 = res.get('ctx_area_fk100', '')
+                nk100 = res.get('ctx_area_nk100', '')
+            else: break
+                
         print(f"평가가치 : {total_evaluation} 원")
-
         return stock_dict, total_evaluation
     
     def get_cash_balance(self):
         """현금 잔고조회"""
+        # If we have a cached cash balance fetched less than 5 seconds ago, return it
+        if hasattr(self, 'cash_balance') and hasattr(self, 'cash_balance_time'):
+            if time.time() - self.cash_balance_time < 5.0:
+                print(f"주문 가능 현금 잔고 (캐시): {self.cash_balance}원")
+                return self.cash_balance
+                
         PATH = "uapi/domestic-stock/v1/trading/inquire-balance"
         URL = f"{self.URL_BASE}/{PATH}"
         headers = {"Content-Type":"application/json", 
@@ -101,17 +132,26 @@ class API(API):
             "CTX_AREA_FK100": "",
             "CTX_AREA_NK100": ""
         }
-        res = requests.get(URL, headers=headers, params=params)
-        cash = int(res.json()['output2'][0]['prvs_rcdl_excc_amt'])
-        print(f"주문 가능 현금 잔고: {cash}원")
-        return cash
+        res_obj = requests.get(URL, headers=headers, params=params)
+        res = res_obj.json()
+        if res.get('rt_cd') != '0':
+            raise RuntimeError(f"KIS API Error: {res.get('msg1', 'Unknown error')} (code: {res.get('msg_cd')})")
+            
+        evaluation = res.get("output2", [{}])
+        if not evaluation:
+            raise RuntimeError("KIS API Error: output2 is empty")
+            
+        self.cash_balance = int(evaluation[0]['prvs_rcdl_excc_amt'])
+        self.cash_balance_time = time.time()
+        print(f"주문 가능 현금 잔고: {self.cash_balance}원")
+        return self.cash_balance
     
     def buy(self, code, qty)-> None:
         """주식 시장가 매수"""  
         PATH = "uapi/domestic-stock/v1/trading/order-cash"
         URL = f"{self.URL_BASE}/{PATH}"
 
-        self.get_cash_balance()
+        # self.get_cash_balance()
 
         data = {
             "CANO": self.__CANO__,

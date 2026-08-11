@@ -4,100 +4,126 @@ import time
 import numpy as np
 
 class rebalancing(API):
-        def __init__(self, filepath=...) -> None:
-                super().__init__(filepath)
+    def __init__(self, filepath=...) -> None:
+        super().__init__(filepath)
 
-        def load_portfolio(self, filepath):
-                self.portfolio = pd.read_csv(
-                        filepath_or_buffer= f"{filepath}", 
-                        header=0,
-                        dtype={
-                                'name' : str,
-                                'code' : str,
-                                'weight' : np.float64
-                        }
-                )                    
-                self.portfolio['sell'] = False
-                self.portfolio['buy'] = False
-                self.portfolio['trade_qty'] = 0
-                print(self.portfolio)
-                self.number = self.portfolio['name'].size
+    def load_portfolio(self, filepath):
+        self.portfolio = pd.read_csv(
+            filepath_or_buffer= f"{filepath}", 
+            header=0,
+            dtype={
+                'name' : str,
+                'code' : str,
+                'weight' : np.float64
+            }
+        )                    
+        self.portfolio['sell'] = False
+        self.portfolio['buy'] = False
+        self.portfolio['trade_qty'] = 0
+        print(self.portfolio)
+        self.number = self.portfolio['name'].size
                 
-        def get_asset_balance(self):
-                self.asset_balance, self.total_evaluation= super().get_asset_balance()
+    def get_asset_balance(self):
+        self.asset_balance, self.total_evaluation= super().get_asset_balance()
 
-        def set_using_current(self, added_cash:int = 1000000):
-                self.cash_balance = self.get_cash_balance()
+    def set_using_current(self, added_cash:int = 1000000):
+        self.cash_balance = self.get_cash_balance()
 
-                # 추가할 현금
-                if self.cash_balance > added_cash:
-                        self.total_evaluation -= self.cash_balance-added_cash
+        # 추가할 현금
+        if self.cash_balance > added_cash:
+            self.total_evaluation -= self.cash_balance-added_cash
 
-        def make_trade_plan(self, slowdown=False):
-                for i in range(self.number):
-                        code = self.portfolio.loc[i,'code']
-                        current_price = self.get_current_price(code)
+    def make_trade_plan(self, slowdown=False):
+        for i in range(self.number):
+            code = self.portfolio.loc[i,'code']
+            current_price = self.get_current_price(code)
 
-                        target_evaluation_of_theStock = self.total_evaluation * float(self.portfolio.loc[i,'weight'])
-                        try:    current_evaluation_of_theStock =  current_price*self.asset_balance[code]
-                        except: current_evaluation_of_theStock = 0
+            target_evaluation_of_theStock = self.total_evaluation * float(self.portfolio.loc[i,'weight'])
+            try:    current_evaluation_of_theStock =  current_price*self.asset_balance[code]
+            except: current_evaluation_of_theStock = 0
                         
-                        # print(code)
+            # print(code)
                         
-                        # Compute target quantity
-                        target_qty = target_evaluation_of_theStock/current_price
-                        target_qty = round(target_qty)
+            # Compute target quantity
+            target_qty = target_evaluation_of_theStock/current_price
+            target_qty = round(target_qty)
 
-                        # Compute trade quantity 
-                        trade_qty = 0
-                        try:    trade_qty = target_qty - self.asset_balance[code]
-                        except: trade_qty = target_qty
+            # Compute trade quantity 
+            trade_qty = 0
+            try:    trade_qty = target_qty - self.asset_balance[code]
+            except: trade_qty = target_qty
 
-                        # 거래량을 줄이려는 경우우
-                        if slowdown:
-                                if trade_qty > 0:
-                                        self.portfolio.loc[i, "buy"] = True
-                                elif trade_qty < 0 and current_evaluation_of_theStock/target_evaluation_of_theStock > 1.05:
-                                        # 매도할 때 5% 이상 차이가 나면 매도
-                                        self.portfolio.loc[i, "sell"] = True
-                                        trade_qty *= -1
-                                # 분할 거래 (하루 거래 금액이 50만원 넘지 않게)
-                                while trade_qty > 1 and current_price*trade_qty > 500000:
-                                        trade_qty -= 1
-                        # 거래량을 줄이지 않는 경우우
-                        else:
-                                if trade_qty > 0:
-                                        self.portfolio.loc[i, "buy"] = True
-                                elif trade_qty < 0:
-                                        self.portfolio.loc[i, "sell"] = True
-                                        trade_qty *= -1
-
-                        self.portfolio.loc[i, "trade_qty"] = trade_qty
-                        time.sleep(0.3)
+            # 거래량을 줄이려는 경우우
+            if slowdown:
+                if trade_qty > 0:
+                    self.portfolio.loc[i, "buy"] = True
+                elif trade_qty < 0 and current_evaluation_of_theStock/target_evaluation_of_theStock > 1.05:
+                    # 매도할 때 5% 이상 차이가 나면 매도
+                    self.portfolio.loc[i, "sell"] = True
+                    trade_qty *= -1
+                    # 분할 거래 (하루 거래 금액이 50만원 넘지 않게)
+                    while trade_qty > 1 and current_price*trade_qty > 500000:
+                        trade_qty -= 1
                 
-        def trade(self):
-                # 포트폴리오에 없는 자산 매도
-                portfolio_code_lst = self.portfolio['code'].to_list()
-                for code in self.asset_balance.keys():
-                        if code not in portfolio_code_lst:
-                                print(f"종목코드 {code}가 포트폴리에 없으므로 매도합니다.")
-                                self.sell(code=code, qty=self.asset_balance[code])
+            # 거래량을 줄이지 않는 경우우
+            else:
+                if trade_qty > 0:
+                    self.portfolio.loc[i, "buy"] = True
+                elif trade_qty < 0:
+                    self.portfolio.loc[i, "sell"] = True
+                    trade_qty *= -1
+            
+            self.portfolio.loc[i, "trade_qty"] = trade_qty
+            time.sleep(0.5)
+                
+    def trade(self, dry_run=False):
+        if not dry_run:
+            print("\nWARNING: Real money trading will be executed.")
+            confirm = input("정말로 실제 거래를 진행하시겠습니까? (yes/no): ")
+            if confirm.strip().lower() != 'yes':
+                print("거래가 취소되었습니다. Dry-run 모드로 전환합니다.")
+                dry_run = True
 
-                # 목표량보다 많으면 매도
-                for i in range(self.number):
-                        asset = self.portfolio.loc[i]
-                        if asset['sell']:
-                                print(asset['name'])
-                                self.sell(code=asset["code"],qty=asset['trade_qty'])
-                                time.sleep(0.3)
-                print("매도 완료")
-                print("===========================")
+        if dry_run:
+            print("\n--- [DRY RUN] 시작 ---")
+        else:
+            print("\n--- [REAL TRADE] 시작 ---")
 
-                # 목표량보다 적으면 매수
-                for i in range(self.number):
-                        asset = self.portfolio.loc[i]
-                        if asset['buy']:
-                                print(asset['name'])
-                                self.buy(code=asset["code"],qty=asset['trade_qty'])
-                        time.sleep(0.3)
-                print("매수 완료")
+        # 포트폴리오에 없는 자산 매도
+        portfolio_code_lst = self.portfolio['code'].to_list()
+        for code in self.asset_balance.keys():
+            if code not in portfolio_code_lst:
+                if dry_run:
+                    print(f"[DRY RUN] 종목코드 {code}가 포트폴리에 없으므로 매도합니다. (수량: {self.asset_balance[code]}주)")
+                else:
+                    print(f"종목코드 {code}가 포트폴리에 없으므로 매도합니다.")
+                    self.sell(code=code, qty=self.asset_balance[code])
+                time.sleep(0.5)
+
+        # 목표량보다 많으면 매도
+        for i in range(self.number):
+            asset = self.portfolio.loc[i]
+            if asset['sell']:
+                if dry_run:
+                    print(f"[DRY RUN] 매도: {asset['name']} ({asset['code']}) - {asset['trade_qty']}주")
+                else:
+                    print(asset['name'])
+                    self.sell(code=asset["code"],qty=asset['trade_qty'])
+                time.sleep(0.5)
+        print("매도 완료" if not dry_run else "[DRY RUN] 매도 완료")
+        print("===========================")
+
+        # 목표량보다 적으면 매수
+        for i in range(self.number):
+            asset = self.portfolio.loc[i]
+            if asset['buy']:
+                if dry_run:
+                    print(f"[DRY RUN] 매수: {asset['name']} ({asset['code']}) - {asset['trade_qty']}주")
+                else:
+                    print(asset['name'])
+                    self.buy(code=asset["code"],qty=asset['trade_qty'])
+                time.sleep(0.5)
+        print("매수 완료" if not dry_run else "[DRY RUN] 매수 완료")
+        time.sleep(0.5)
+        if dry_run:
+            print("--- [DRY RUN] 종료 ---\n")
