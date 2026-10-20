@@ -15,10 +15,8 @@ if __name__ == "__main__":
     main.make_trade_plan(slowdown=True)
     main.trade(dry_run=dry_run)
     print("===========================")
-    if dry_run:
-        print("자산 재분배 모의 실행(Dry-run)이 완료되었습니다.")
-    else:
-        print("자산 재분배가 완료되었습니다.")
+    if dry_run: print("자산 재분배 모의 실행(Dry-run)이 완료되었습니다.")
+    else:       print("자산 재분배가 완료되었습니다.")
     print("===========================")
     main.get_asset_balance()
     main.get_cash_balance()

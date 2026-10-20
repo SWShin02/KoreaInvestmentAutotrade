@@ -61,9 +61,8 @@ class rebalancing(API):
                     # 매도할 때 5% 이상 차이가 나면 매도
                     self.portfolio.loc[i, "sell"] = True
                     trade_qty *= -1
-                    # 분할 거래 (하루 거래 금액이 50만원 넘지 않게)
-                    while trade_qty > 1 and current_price*trade_qty > 500000:
-                        trade_qty -= 1
+                    # 분할 거래 (하루 거래 금액이 20만원 넘지 않게)
+                    while trade_qty > 1 and current_price*trade_qty > 200000: trade_qty -= 1
                 
             # 거래량을 줄이지 않는 경우우
             else:
@@ -97,7 +96,11 @@ class rebalancing(API):
                     print(f"[DRY RUN] 종목코드 {code}가 포트폴리에 없으므로 매도합니다. (수량: {self.asset_balance[code]}주)")
                 else:
                     print(f"종목코드 {code}가 포트폴리에 없으므로 매도합니다.")
-                    self.sell(code=code, qty=self.asset_balance[code])
+                    # 한꺼번에 전부 매도하는 것을 방지
+                    trade_qty = self.asset_balance[code]
+                    price = self.get_current_price(code)
+                    while (trade_qty*price > 2e5) and (trade_qty>1): trade_qty -= 1
+                    self.sell(code=code, qty=trade_qty)
                 time.sleep(0.5)
 
         # 목표량보다 많으면 매도
