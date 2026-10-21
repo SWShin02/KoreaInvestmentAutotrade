@@ -19,7 +19,7 @@ class API:
         self.date_format = "%Y%m%d"
 
 
-    def __get_new_access_token(self):
+    def __get_new_access_token__(self):
         """토큰 발급"""
         headers = {"content-type":"application/json"}
         body = {
@@ -75,7 +75,7 @@ class API:
 
         data.to_csv(f"{self.filepath}/token.csv")
 
-    def __load_access_token(self):
+    def __load_access_token__(self):
         df = pd.read_csv(
             filepath_or_buffer=f"{self.filepath}/token.csv",
             header=0,
@@ -87,4 +87,4 @@ class API:
         if self.today.strftime(self.date_format) == df['date'][0]:
             self.__ACCESS_TOKEN__ = df['token'][0]
         else:
-            self.__get_new_access_token()
+            self.__get_new_access_token__()

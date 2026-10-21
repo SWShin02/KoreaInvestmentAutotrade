@@ -45,32 +45,22 @@ class rebalancing(API):
             # print(code)
                         
             # Compute target quantity
-            target_qty = target_evaluation_of_theStock/current_price
-            target_qty = round(target_qty)
+            target_qty = round(target_evaluation_of_theStock/current_price)
 
             # Compute trade quantity 
             trade_qty = 0
             try:    trade_qty = target_qty - self.asset_balance[code]
             except: trade_qty = target_qty
-
-            # 거래량을 줄이려는 경우우
-            if slowdown:
-                if trade_qty > 0:
-                    self.portfolio.loc[i, "buy"] = True
-                elif trade_qty < 0 and current_evaluation_of_theStock/target_evaluation_of_theStock > 1.05:
-                    # 매도할 때 5% 이상 차이가 나면 매도
-                    self.portfolio.loc[i, "sell"] = True
-                    trade_qty *= -1
-                    # 분할 거래 (하루 거래 금액이 20만원 넘지 않게)
-                    while trade_qty > 1 and current_price*trade_qty > 200000: trade_qty -= 1
                 
-            # 거래량을 줄이지 않는 경우우
-            else:
-                if trade_qty > 0:
-                    self.portfolio.loc[i, "buy"] = True
-                elif trade_qty < 0:
-                    self.portfolio.loc[i, "sell"] = True
-                    trade_qty *= -1
+            if trade_qty > 0:
+                self.portfolio.loc[i, "buy"] = True
+            elif trade_qty < 0:
+                self.portfolio.loc[i, "sell"] = True
+                trade_qty *= -1
+            # 거래량을 줄이려는 경우
+            if slowdown: 
+                print(type(trade_qty))
+                trade_qty=self.__limit_qty__(tmp_qty=trade_qty, price=current_price)
             
             self.portfolio.loc[i, "trade_qty"] = trade_qty
             time.sleep(0.5)
@@ -92,14 +82,13 @@ class rebalancing(API):
         portfolio_code_lst = self.portfolio['code'].to_list()
         for code in self.asset_balance.keys():
             if code not in portfolio_code_lst:
+                # 한꺼번에 전부 매도하는 것을 방지
+                price = self.get_current_price(code)
+                trade_qty = self.__limit_qty__(tmp_qty=self.asset_balance[code], price=price)
                 if dry_run:
-                    print(f"[DRY RUN] 종목코드 {code}가 포트폴리에 없으므로 매도합니다. (수량: {self.asset_balance[code]}주)")
+                    print(f"[DRY RUN] 종목코드 {code}가 포트폴리에 없으므로 매도합니다. (수량: {trade_qty}주)")
                 else:
                     print(f"종목코드 {code}가 포트폴리에 없으므로 매도합니다.")
-                    # 한꺼번에 전부 매도하는 것을 방지
-                    trade_qty = self.asset_balance[code]
-                    price = self.get_current_price(code)
-                    while (trade_qty*price > 2e5) and (trade_qty>1): trade_qty -= 1
                     self.sell(code=code, qty=trade_qty)
                 time.sleep(0.5)
 
@@ -130,3 +119,8 @@ class rebalancing(API):
         time.sleep(0.5)
         if dry_run:
             print("--- [DRY RUN] 종료 ---\n")
+
+    def __limit_qty__(self, tmp_qty:int, price:float, limit:float=2e5)->int:
+        qty = tmp_qty
+        while qty > 1 and price*qty > limit: qty -= 1
+        return qty

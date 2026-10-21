@@ -11,9 +11,9 @@ class API(API):
 
         # access token 불러오기
         try:
-            self.__load_access_token()
+            self.__load_access_token__()
         except:
-            self.__get_new_access_token()
+            self.__get_new_access_token__()
         
     
     def get_current_price(self, code):
