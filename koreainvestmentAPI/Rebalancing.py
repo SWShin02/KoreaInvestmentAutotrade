@@ -58,9 +58,7 @@ class rebalancing(API):
                 self.portfolio.loc[i, "sell"] = True
                 trade_qty *= -1
             # 거래량을 줄이려는 경우
-            if slowdown: 
-                print(type(trade_qty))
-                trade_qty=self.__limit_qty__(tmp_qty=trade_qty, price=current_price)
+            if slowdown: trade_qty=self.__limit_qty__(tmp_qty=trade_qty, price=current_price)
             
             self.portfolio.loc[i, "trade_qty"] = trade_qty
             time.sleep(0.5)
